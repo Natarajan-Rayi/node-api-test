@@ -21,7 +21,7 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // Configure CORS middleware
-const allowedOrigins = ["https://med4us.in", "*"]; // Add your allowed origins
+const allowedOrigins = ["*"]; // Add your allowed origins
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.includes(origin) || !origin) {
@@ -46,7 +46,35 @@ app.get("/", (req, res) => {
 });
 
 // submission detail store
-app.get("/GetAllProductsSpecs", (req, res) => {
+app.get("/device-info", (req, res) => {
+  res.setHeader("version.securityPatch", "text/plain");
+  res.setHeader("version.sdkInt", "text/plain");
+  res.setHeader("version.release", "text/plain");
+  res.setHeader("version.previewSdkInt", "text/plain");
+  res.setHeader("version.incremental", "text/plain");
+  res.setHeader("version.codename", "text/plain");
+  res.setHeader("version.baseOS", "text/plain");
+  res.setHeader("board", "text/plain");
+  res.setHeader("bootloader", "text/plain");
+  res.setHeader("brand", "text/plain");
+  res.setHeader("device", "text/plain");
+  res.setHeader("display", "text/plain");
+  res.setHeader("fingerprint", "text/plain");
+  res.setHeader("hardware", "text/plain");
+  res.setHeader("host", "text/plain");
+  res.setHeader("id", "text/plain");
+  res.setHeader("manufacturer", "text/plain");
+  res.setHeader("model", "text/plain");
+  res.setHeader("product", "text/plain");
+  res.setHeader("supported32BitAbis", "text/plain");
+  res.setHeader("supported64BitAbis", "text/plain");
+  res.setHeader("supportedAbis", "text/plain");
+  res.setHeader("tags", "text/plain");
+  res.setHeader("type", "text/plain");
+  res.setHeader("isPhysicalDevice", Boolean);
+  res.setHeader("androidId", "text/plain");
+  res.setHeader("systemFeatures", "text/plain");
+
   const data = req.body;
   console.log(data);
 
@@ -69,7 +97,10 @@ app.get("/GetAllProductsSpecs", (req, res) => {
 
 app.post("/submit-form", (req, res) => {
   const data = req.body;
-  if (data.Products_Specs.Mobile_name !== "" && String(data.Products_Specs.Mobile_number).length === 10) {
+  if (
+    data.Products_Specs.Mobile_name !== "" &&
+    String(data.Products_Specs.Mobile_number).length === 10
+  ) {
     db.collection("enquiry_collection")
       .add(data)
       .then((docRef) => {
@@ -91,7 +122,6 @@ app.post("/submit-form", (req, res) => {
     res.status(200).json({ message: errorMessage });
   }
 });
-
 
 // mail notification send
 app.get("/notification-send", (req, res) => {});
