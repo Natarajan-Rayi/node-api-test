@@ -4,6 +4,15 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const app = express();
 var admin = require("firebase-admin");
+const jwt = require("jsonwebtoken");
+const secretKey = "ZkTCP1MMbChTPCe_BD90j_8qgW5uNJTsoV3skP06Vj"; // Replace with your secret key
+
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  refreshAccessToken,
+} = require("./token");
 
 const port = process.env.PORT || 5001; // Set the port to listen on
 
@@ -13,6 +22,9 @@ app.use(bodyParser.json());
 // Parse URL-encoded bodies
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("./cred"));
+
+// setInterval(refreshAccessToken, 1000 * 60 * 5);
+
 var serviceAccount = require("./cred/surfgeo-sale.json");
 
 admin.initializeApp({
@@ -39,42 +51,80 @@ app.use((req, res, next) => {
   next();
 });
 
+function authenticateToken(req, res, next) {
+  // Get the authorization header
+  const authHeader = req.headers.authorization;
+
+  if (typeof authHeader !== "undefined") {
+    // Extract the token from the authorization header
+    const token = authHeader.split(" ")[1]; // Bearer <token>
+
+    // Verify the token
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        // Token verification failed
+        return res
+          .status(403)
+          .json({ ErrorMessage: "Access Token is expires." });
+      }
+
+      // Token is valid, you can access the decoded data if needed
+      req.user = decoded;
+      next();
+    });
+  } else {
+    // No token provided
+    res.status(401).json({ ErrorMessage: "Access Token is Unauthorized." }); // Unauthorized
+  }
+}
+
 // app.use(cors(corsOptions));
 // Define routes and middleware
-app.get("/", (req, res) => {
-  res.send("Hello, World!");
+app.get("/JWT", (req, res) => {
+  // Example usage
+  const user = {
+    id: "123",
+    email: "user@example.com",
+  };
+
+  // Generate tokens
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken(user);
+
+  console.log("Access Token:", accessToken);
+  console.log("Refresh Token:", refreshToken);
+
+  // Verify access token
+  const decodedToken = verifyAccessToken(accessToken);
+  if (decodedToken) {
+    console.log("Access Token is valid.");
+    console.log("User ID:", decodedToken.userId);
+    console.log("User Email:", decodedToken.email);
+  } else {
+    console.log("Access Token is invalid.");
+    res.status(401).json({ ErrorMessage: "Access Token is invalid." });
+  }
+
+  // Refresh access token using refresh token
+  const newAccessToken = refreshAccessToken(refreshToken);
+  if (newAccessToken) {
+    console.log("Access Token refreshed successfully.");
+    console.log("New Access Token:", newAccessToken);
+  } else {
+    console.log("Refresh Token is invalid.");
+    res.status(401).json({ ErrorMessage: "Refresh Token is invalid." });
+  }
+
+  res.status(200).json({
+    UserID: decodedToken.userId,
+    Email: decodedToken.email,
+    accessToken: newAccessToken,
+    refreshToken: refreshToken,
+  });
 });
 
 // submission detail store
-app.get("/device-info", (req, res) => {
-  res.setHeader("version.securityPatch", "text/plain");
-  res.setHeader("version.sdkInt", "text/plain");
-  res.setHeader("version.release", "text/plain");
-  res.setHeader("version.previewSdkInt", "text/plain");
-  res.setHeader("version.incremental", "text/plain");
-  res.setHeader("version.codename", "text/plain");
-  res.setHeader("version.baseOS", "text/plain");
-  res.setHeader("board", "text/plain");
-  res.setHeader("bootloader", "text/plain");
-  res.setHeader("brand", "text/plain");
-  res.setHeader("device", "text/plain");
-  res.setHeader("display", "text/plain");
-  res.setHeader("fingerprint", "text/plain");
-  res.setHeader("hardware", "text/plain");
-  res.setHeader("host", "text/plain");
-  res.setHeader("id", "text/plain");
-  res.setHeader("manufacturer", "text/plain");
-  res.setHeader("model", "text/plain");
-  res.setHeader("product", "text/plain");
-  res.setHeader("supported32BitAbis", "text/plain");
-  res.setHeader("supported64BitAbis", "text/plain");
-  res.setHeader("supportedAbis", "text/plain");
-  res.setHeader("tags", "text/plain");
-  res.setHeader("type", "text/plain");
-  res.setHeader("isPhysicalDevice", Boolean);
-  res.setHeader("androidId", "text/plain");
-  res.setHeader("systemFeatures", "text/plain");
-
+app.get("/device-info", authenticateToken, (req, res) => {
   const data = req.body;
   console.log(data);
 
@@ -95,7 +145,7 @@ app.get("/device-info", (req, res) => {
     });
 });
 
-app.post("/submit-form", (req, res) => {
+app.post("/submit-form", authenticateToken, (req, res) => {
   const data = req.body;
   if (
     data.Products_Specs.Mobile_name !== "" &&
