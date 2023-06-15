@@ -14,13 +14,14 @@ const {
   refreshAccessToken,
 } = require("./token");
 
-const port = process.env.PORT || 5001; // Set the port to listen on
+const port = process.env.PORT || 5002; // Set the port to listen on
+
+// Parse URL-encoded bodies
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Parse JSON bodies
 app.use(bodyParser.json());
 
-// Parse URL-encoded bodies
-app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("./cred"));
 
 // setInterval(refreshAccessToken, 1000 * 60 * 5);
@@ -147,10 +148,7 @@ app.get("/device-info", authenticateToken, (req, res) => {
 
 app.post("/submit-form", authenticateToken, (req, res) => {
   const data = req.body;
-  if (
-    data.Products_Specs.Mobile_name !== "" &&
-    String(data.Products_Specs.Mobile_number).length === 10
-  ) {
+  if (data.brand !== "" && data.model !== "" && data.device !== "") {
     db.collection("enquiry_collection")
       .add(data)
       .then((docRef) => {
@@ -161,12 +159,14 @@ app.post("/submit-form", authenticateToken, (req, res) => {
       });
   } else {
     let errorMessage;
-    if (data.Products_Specs.Mobile_name === "") {
-      errorMessage = "Fill in the empty Mobile name field";
-    } else if (String(data.Products_Specs.Mobile_number).length !== 10) {
-      errorMessage = "Enter at least 10 mobile numbers";
+    if (data.device === "") {
+      errorMessage = "Fill in the empty device name field";
+    } else if (data.model === "") {
+      errorMessage = "Fill in the empty model name field";
+    } else if (data.brand === "") {
+      errorMessage = "Fill in the empty brand name field";
     } else {
-      errorMessage = "Fill in the empty Mobile name field and Mobile number";
+      errorMessage = "Fill in the all empty";
     }
 
     res.status(200).json({ message: errorMessage });
