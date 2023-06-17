@@ -152,7 +152,10 @@ app.post("/submit-form", authenticateToken, (req, res) => {
     db.collection("enquiry_collection")
       .add(data)
       .then((docRef) => {
-        res.status(200).json({ message: "Data stored successfully" });
+        res.status(200).json({
+          status: res.status,
+          message: "Device register stored successfully",
+        });
       })
       .catch((error) => {
         res.status(500).json({ message: error });
@@ -173,6 +176,141 @@ app.post("/submit-form", authenticateToken, (req, res) => {
   }
 });
 
+app.post("/user-signin", authenticateToken, (req, res) => {
+  const body = req.body;
+  if (body.userName == "" && body.password == "") {
+    res.status(200).json({
+      status: res.status,
+      message: "Please enter your user name and password",
+    });
+  } else if (body.userName == "") {
+    res
+      .status(200)
+      .json({ status: res.status, message: "Please enter a user name" });
+  } else if (body.password == "") {
+    res
+      .status(200)
+      .json({ status: res.status, message: "Please enter a password" });
+  } else {
+    // db.collection("user_register")
+    //   .add({
+    //     user_name: body.userName,
+    //     password: body.password,
+    //     secret_code: "",
+    //   })
+    //   .then((docRef) => {})
+    //   .catch((error) => {
+    //     res.status(500).json({ message: error });
+    //   });
+    const collectionRef = db.collection("user_register");
+
+    // Query to check if both fields exist
+    const query = collectionRef
+      .where("user_name", "==", body.userName)
+      .where("password", "==", body.password);
+
+    query
+      .get()
+      .then((querySnapshot) => {
+        if (querySnapshot.empty) {
+          res.status(500).json({
+            status: res.status,
+            message: "User name or password is incorrect",
+          });
+        } else {
+          querySnapshot.forEach((docRef) => {
+            const data = {
+              key1: docRef.id,
+            };
+
+            // Build the query string from the data object
+            const queryString = Object.keys(data)
+              .map(
+                (key) =>
+                  `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
+              )
+              .join("&");
+
+            res.redirect(`/secret-code-generate?${queryString}`);
+            res.status(200).json({
+              status: res.status,
+              message: "user detail correct",
+            });
+          });
+          console.log("Fields exist in the documents");
+          // Perform further operations if needed
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking fields:", error);
+      });
+  }
+});
+
+app.get("/secret-code-generate", (req, res) => {
+  const { key1 } = req.query;
+  const min = 100000;
+  const max = 999999;
+  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+
+  db.collection("user_register")
+    .doc(key1) // Replace docId with the ID of the document you want to update
+    .update({
+      secret_code: parseInt(randomNumber),
+      timestamp: admin.firestore.Timestamp.now(),
+      // Update the 'secret_code' field with a new value
+    })
+    .then(() => {
+      res.status(200).json({
+        status: res.status,
+        doc_id: key1,
+        secret_code: randomNumber,
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({ message: error });
+    });
+});
+
+app.post("/verify-secret-code", authenticateToken, (req, res) => {
+  /* This code is querying the Firestore database to check if a document exists with a specific
+  `doc_id` and `secret_code`. If the query returns an empty result, it means that the secret code is
+  incorrect and the server responds with a JSON message indicating that. */
+  const body = req.body;
+  const collectionRef = db.collection("user_register");
+  const query = collectionRef
+    // .where("doc_id", "==", body.doc_id)
+    .where("secret_code", "==", body.secret_code);
+
+  query.get().then((querySnapshot) => {
+    if (querySnapshot.empty) {
+      res.status(200).json({
+        status: res.status,
+        message: "Secret code is incorrect",
+      });
+    } else {
+      const documentData = querySnapshot.docs[0].data();
+      const timestamp = documentData.timestamp;
+      const currentTime = admin.firestore.Timestamp.now();
+
+      // Compare the timestamp with the current time
+      const diffInSeconds = Math.abs(currentTime.seconds - timestamp.seconds);
+
+      if (diffInSeconds <= 60) {
+        res.status(200).json({
+          status: res.status,
+          message: "login successfully",
+        });
+      } else {
+        res.status(200).json({
+          status: res.status,
+          message: "The time is more than 60 seconds please try again.",
+        });
+        console.log("The time is more than 60 seconds please try again.");
+      }
+    }
+  });
+});
 // mail notification send
 app.get("/notification-send", (req, res) => {});
 

@@ -1,6 +1,6 @@
 const axios = require("axios");
-const jwt = require('jsonwebtoken');
-const secretKey = 'ZkTCP1MMbChTPCe_BD90j_8qgW5uNJTsoV3skP06Vj'; // Replace with your secret key
+const jwt = require("jsonwebtoken");
+const secretKey = "ZkTCP1MMbChTPCe_BD90j_8qgW5uNJTsoV3skP06Vj"; // Replace with your secret key
 
 // Function to generate an access token
 function generateAccessToken(user) {
@@ -12,7 +12,7 @@ function generateAccessToken(user) {
   };
 
   const options = {
-    expiresIn: '1m', // Token expiration time
+    expiresIn: "4m", // Token expiration time
   };
 
   return jwt.sign(payload, secretKey, options);
@@ -25,7 +25,7 @@ function generateRefreshToken(user) {
   };
 
   const options = {
-    expiresIn: '7d', // Token expiration time
+    expiresIn: "7d", // Token expiration time
   };
 
   return jwt.sign(payload, secretKey, options);
@@ -57,4 +57,9 @@ function refreshAccessToken(refreshToken) {
   }
 }
 
-module.exports = { generateAccessToken, generateRefreshToken, verifyAccessToken, refreshAccessToken };
+module.exports = {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  refreshAccessToken,
+};
