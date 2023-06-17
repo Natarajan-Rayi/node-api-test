@@ -146,20 +146,49 @@ app.get("/device-info", authenticateToken, (req, res) => {
     });
 });
 
-app.post("/submit-form", authenticateToken, (req, res) => {
-  const data = req.body;
+app.post("/device-register", authenticateToken, (req, res) => {
+  let data = req.body;
   if (data.brand !== "" && data.model !== "" && data.device !== "") {
-    db.collection("enquiry_collection")
-      .add(data)
-      .then((docRef) => {
-        res.status(200).json({
-          status: res.status,
-          message: "Device register stored successfully",
-        });
-      })
-      .catch((error) => {
-        res.status(500).json({ message: error });
-      });
+    const collectionRef = db.collection("enquiry_collection");
+    const query = collectionRef.where("id", "==", data.id);
+
+    query.get().then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        data.created_date = admin.firestore.Timestamp.now();
+        data.modified_date = admin.firestore.Timestamp.now();
+        db.collection("enquiry_collection")
+          .add(data)
+          .then((docRef) => {
+            res.status(200).json({
+              status: res.status,
+              token_id: docRef.id,
+              message: "Device register stored successfully",
+            });
+          })
+          .catch((error) => {
+            res.status(500).json({ message: error });
+          });
+      } else {
+        let doc_id = querySnapshot.docs[0].id;
+        let documentData = querySnapshot.docs[0].data();
+        const create_date = documentData.created_date;
+        data.created_date = create_date;
+        data.modified_date = admin.firestore.Timestamp.now();
+        db.collection("enquiry_collection")
+          .doc(doc_id)
+          .update(data)
+          .then(() => {
+            res.status(200).json({
+              status: res.status,
+              token_id: doc_id,
+              message: "Device updated successfully",
+            });
+          })
+          .catch((error) => {
+            res.status(500).json({ message: error });
+          });
+      }
+    });
   } else {
     let errorMessage;
     if (data.device === "") {
@@ -219,21 +248,21 @@ app.post("/user-signin", authenticateToken, (req, res) => {
           });
         } else {
           querySnapshot.forEach((docRef) => {
-            const data = {
-              key1: docRef.id,
-            };
+            // const data = {
+            //   key1: docRef.id,
+            // };
 
-            // Build the query string from the data object
-            const queryString = Object.keys(data)
-              .map(
-                (key) =>
-                  `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
-              )
-              .join("&");
+            // // Build the query string from the data object
+            // const queryString = Object.keys(data)
+            //   .map(
+            //     (key) =>
+            //       `${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`
+            //   )
+            //   .join("&");
 
-            res.redirect(`/secret-code-generate?${queryString}`);
             res.status(200).json({
               status: res.status,
+              doc_id: docRef.id,
               message: "user detail correct",
             });
           });
@@ -247,8 +276,8 @@ app.post("/user-signin", authenticateToken, (req, res) => {
   }
 });
 
-app.get("/secret-code-generate", (req, res) => {
-  const { key1 } = req.query;
+app.get("/secret-code-generate", authenticateToken, (req, res) => {
+  const key1 = req.body.doc_id;
   const min = 100000;
   const max = 999999;
   const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -279,7 +308,7 @@ app.post("/verify-secret-code", authenticateToken, (req, res) => {
   const body = req.body;
   const collectionRef = db.collection("user_register");
   const query = collectionRef
-    // .where("doc_id", "==", body.doc_id)
+    .where("doc_id", "==", body.doc_id)
     .where("secret_code", "==", body.secret_code);
 
   query.get().then((querySnapshot) => {
