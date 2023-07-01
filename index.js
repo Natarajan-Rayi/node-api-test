@@ -415,6 +415,90 @@ app.post("/user-register", authenticateToken, (req, res) => {
     }
   }
 });
+
+app.get("/user-detail", authenticateToken, (req, res) => {
+  let user_data_get = [];
+  db.collection("user_register")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        user_data_get.push(data);
+      });
+      res.status(200).json({
+        status: res.status,
+        user_data: user_data_get,
+      });
+    })
+    .catch((error) => {
+      res.status(500).json({
+        status: res.status,
+        message: error,
+      });
+    });
+});
+
+app.post("/case-id-add", authenticateToken, (req, res) => {
+  const body = req.body;
+  var docRef = db.collection("user_register").doc(body.doc_id);
+
+  docRef
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        let case_id_array = [];
+        console.log("Document data:", doc.data());
+        let get_exist_id = doc.data().case_id;
+        if (get_exist_id === "") {
+          case_id_array = [];
+        } else {
+          case_id_array = get_exist_id;
+        }
+        if (typeof body.case_id === "string") {
+          case_id_array.push(body.case_id);
+          var collectionRef = db.collection("user_register").doc(body.doc_id);
+
+          // Atomically increment the population of the city by 50.
+          collectionRef.update({
+            case_id: case_id_array,
+          });
+          res.status(200).json({
+            status: res.status,
+            msg: "case id successfully added",
+          });
+        } else {
+          let concat_exist_id = case_id_array.concat(body.case_id);
+          var collectionRef = db.collection("user_register").doc(body.doc_id);
+
+          // Atomically increment the population of the city by 50.
+          collectionRef.update({
+            case_id: concat_exist_id,
+          });
+          res.status(200).json({
+            status: res.status,
+            msg: "case id successfully added",
+          });
+        }
+      } else {
+        // doc.data() will be undefined in this case
+        console.log("No such document!");
+        res.status(200).json({
+          status: res.status,
+          msg: "No such us a document",
+        });
+      }
+    })
+    .catch((error) => {
+      console.log("Error getting document:", error);
+      res.status(500).json({
+        status: res.status,
+        msg: error,
+      });
+    });
+});
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
