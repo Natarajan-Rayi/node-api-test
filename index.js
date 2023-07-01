@@ -49,6 +49,7 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "null");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("xdc32332332uei5g", "X-Api-key");
   next();
 });
 
@@ -343,6 +344,77 @@ app.post("/verify-secret-code", authenticateToken, (req, res) => {
 // mail notification send
 app.get("/notification-send", (req, res) => {});
 
+app.post("/user-register", authenticateToken, (req, res) => {
+  const body = req.body;
+  if (
+    body.user_name !== "" &&
+    body.password !== "" &&
+    body.mobile_umber !== "" &&
+    body.email !== ""
+  ) {
+    const collectionRef = db.collection("user_register");
+    const query = collectionRef.where(
+      "mobile_number",
+      "==",
+      body.mobile_number
+    );
+
+    query.get().then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        body.created_date = admin.firestore.Timestamp.now();
+        db.collection("user_register")
+          .add(body)
+          .then((docRef) => {
+            res.status(200).json({
+              status: res.status,
+              token_id: docRef.id,
+              message: "user register successfully",
+            });
+          })
+          .catch((error) => {
+            res.status(500).json({ message: error });
+          });
+      } else {
+        res.status(200).json({
+          status: res.status,
+          message: "user already exist",
+        });
+      }
+    });
+  } else {
+    if (
+      body.user_name == "" &&
+      body.password == "" &&
+      body.mobile_number == "" &&
+      body.email == ""
+    ) {
+      res.status(500).json({
+        status: res.status,
+        message: "Required fields are missing",
+      });
+    } else if (body.user_name == "") {
+      res.status(500).json({
+        status: res.status,
+        message: "user name missing",
+      });
+    } else if (body.password == "") {
+      res.status(500).json({
+        status: res.status,
+        message: "Password is missing",
+      });
+    } else if (body.mobile_number == "") {
+      res.status(500).json({
+        status: res.status,
+        message: "Mobile number missing",
+      });
+    } else {
+      res.status(500).json({
+        status: res.status,
+        message: "email is missing",
+      });
+    }
+  }
+});
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
