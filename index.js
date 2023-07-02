@@ -440,6 +440,42 @@ app.get("/user-detail", authenticateToken, (req, res) => {
     });
 });
 
+app.post("/add-config", (req, res) => {
+  const body = req.body;
+  db.collection("app_config")
+    .add(body)
+    .then((docRef) => {
+      res.status(200).json({
+        status: 200,
+        doc_id: docRef.id,
+        message: "app config added successfully",
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({ status: 400, message: error });
+    });
+});
+
+app.get("/get-config", (req, res) => {
+  let config_detail = [];
+  db.collection("app_config")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        config_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        config: config_detail,
+        message: "app config get successfully",
+      });
+    });
+});
+
 app.post("/case-id-add", authenticateToken, (req, res) => {
   const body = req.body;
   var docRef = db.collection("user_register").doc(body.doc_id);
