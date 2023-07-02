@@ -67,7 +67,7 @@ function authenticateToken(req, res, next) {
         // Token verification failed
         return res
           .status(403)
-          .json({ ErrorMessage: "Access Token is expires." });
+          .json({ status: 500, ErrorMessage: "Access Token is expires." });
       }
 
       // Token is valid, you can access the decoded data if needed
@@ -76,7 +76,9 @@ function authenticateToken(req, res, next) {
     });
   } else {
     // No token provided
-    res.status(401).json({ ErrorMessage: "Access Token is Unauthorized." }); // Unauthorized
+    res
+      .status(401)
+      .json({ status: 400, ErrorMessage: "Access Token is Unauthorized." }); // Unauthorized
   }
 }
 
@@ -118,6 +120,7 @@ app.get("/JWT", (req, res) => {
   }
 
   res.status(200).json({
+    status: 200,
     UserID: decodedToken.userId,
     Email: decodedToken.email,
     accessToken: newAccessToken,
@@ -140,7 +143,7 @@ app.get("/device-info", authenticateToken, (req, res) => {
         snapshotdb.push(data);
       });
       console.log(snapshotdb, "snapshotdb");
-      res.status(200).json({ Products_Specs: snapshotdb });
+      res.status(200).json({ status: 200, Products_Specs: snapshotdb });
     })
     .catch((error) => {
       console.error("Error getting documents: ", error);
@@ -155,38 +158,38 @@ app.post("/device-register", authenticateToken, (req, res) => {
 
     query.get().then((querySnapshot) => {
       if (querySnapshot.empty) {
-        data.created_date = admin.firestore.Timestamp.now();
-        data.modified_date = admin.firestore.Timestamp.now();
+        data.created_date = new Date();
+        data.modified_date = new Date();
         db.collection("enquiry_collection")
           .add(data)
           .then((docRef) => {
             res.status(200).json({
-              status: res.status,
+              status: 200,
               token_id: docRef.id,
               message: "Device register stored successfully",
             });
           })
           .catch((error) => {
-            res.status(500).json({ message: error });
+            res.status(400).json({ status: 400, message: error });
           });
       } else {
         let doc_id = querySnapshot.docs[0].id;
         let documentData = querySnapshot.docs[0].data();
         const create_date = documentData.created_date;
         data.created_date = create_date;
-        data.modified_date = admin.firestore.Timestamp.now();
+        data.modified_date = new Date();
         db.collection("enquiry_collection")
           .doc(doc_id)
           .update(data)
           .then(() => {
             res.status(200).json({
-              status: res.status,
+              status: 200,
               token_id: doc_id,
               message: "Device updated successfully",
             });
           })
           .catch((error) => {
-            res.status(500).json({ message: error });
+            res.status(400).json({ status: 400, message: error });
           });
       }
     });
@@ -202,25 +205,21 @@ app.post("/device-register", authenticateToken, (req, res) => {
       errorMessage = "Fill in the all empty";
     }
 
-    res.status(200).json({ message: errorMessage });
+    res.status(500).json({ status: 500, message: errorMessage });
   }
 });
 
 app.post("/user-signin", authenticateToken, (req, res) => {
   const body = req.body;
   if (body.userName == "" && body.password == "") {
-    res.status(200).json({
-      status: res.status,
+    res.status(500).json({
+      status: 500,
       message: "Please enter your user name and password",
     });
   } else if (body.userName == "") {
-    res
-      .status(200)
-      .json({ status: res.status, message: "Please enter a user name" });
+    res.status(500).json({ status: 500, message: "Please enter a user name" });
   } else if (body.password == "") {
-    res
-      .status(200)
-      .json({ status: res.status, message: "Please enter a password" });
+    res.status(500).json({ status: 500, message: "Please enter a password" });
   } else {
     // db.collection("user_register")
     //   .add({
@@ -292,13 +291,13 @@ app.get("/secret-code-generate", authenticateToken, (req, res) => {
     })
     .then(() => {
       res.status(200).json({
-        status: res.status,
+        status: 200,
         doc_id: key1,
         secret_code: randomNumber,
       });
     })
     .catch((error) => {
-      res.status(500).json({ message: error });
+      res.status(400).json({ status: 400, message: error });
     });
 });
 
@@ -314,8 +313,8 @@ app.post("/verify-secret-code", authenticateToken, (req, res) => {
 
   query.get().then((querySnapshot) => {
     if (querySnapshot.empty) {
-      res.status(200).json({
-        status: res.status,
+      res.status(400).json({
+        status: 400,
         message: "Secret code is incorrect",
       });
     } else {
@@ -328,12 +327,12 @@ app.post("/verify-secret-code", authenticateToken, (req, res) => {
 
       if (diffInSeconds <= 60) {
         res.status(200).json({
-          status: res.status,
+          status: 200,
           message: "login successfully",
         });
       } else {
-        res.status(200).json({
-          status: res.status,
+        res.status(500).json({
+          status: 500,
           message: "The time is more than 60 seconds please try again.",
         });
         console.log("The time is more than 60 seconds please try again.");
@@ -366,13 +365,13 @@ app.post("/user-register", authenticateToken, (req, res) => {
           .add(body)
           .then((docRef) => {
             res.status(200).json({
-              status: res.status,
+              status: 200,
               token_id: docRef.id,
               message: "user register successfully",
             });
           })
           .catch((error) => {
-            res.status(500).json({ message: error });
+            res.status(400).json({ status: 400, message: error });
           });
       } else {
         res.status(200).json({
@@ -429,13 +428,13 @@ app.get("/user-detail", authenticateToken, (req, res) => {
         user_data_get.push(data);
       });
       res.status(200).json({
-        status: res.status,
+        status: 200,
         user_data: user_data_get,
       });
     })
     .catch((error) => {
-      res.status(500).json({
-        status: res.status,
+      res.status(400).json({
+        status: 400,
         message: error,
       });
     });
@@ -466,7 +465,7 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
             case_id: case_id_array,
           });
           res.status(200).json({
-            status: res.status,
+            status: 200,
             msg: "case id successfully added",
           });
         } else {
@@ -478,15 +477,15 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
             case_id: concat_exist_id,
           });
           res.status(200).json({
-            status: res.status,
+            status: 200,
             msg: "case id successfully added",
           });
         }
       } else {
         // doc.data() will be undefined in this case
         console.log("No such document!");
-        res.status(200).json({
-          status: res.status,
+        res.status(500).json({
+          status: 500,
           msg: "No such us a document",
         });
       }
@@ -494,7 +493,7 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
     .catch((error) => {
       console.log("Error getting document:", error);
       res.status(500).json({
-        status: res.status,
+        status: 400,
         msg: error,
       });
     });
