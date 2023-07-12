@@ -12,7 +12,7 @@ function generateAccessToken(user) {
   };
 
   const options = {
-    expiresIn: "4m", // Token expiration time
+    expiresIn: "14m", // Token expiration time
   };
 
   return jwt.sign(payload, secretKey, options);
