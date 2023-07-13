@@ -152,7 +152,7 @@ app.get("/device-info", authenticateToken, (req, res) => {
 
 app.post("/device-register", authenticateToken, (req, res) => {
   let data = req.body;
-  if (data.devicename !== "" && data.model !== "" && data.device !== "") {
+  if (data.udid !== "") {
     const collectionRef = db.collection("enquiry_collection");
     const query = collectionRef.where("udid", "==", data.udid);
 
@@ -195,15 +195,16 @@ app.post("/device-register", authenticateToken, (req, res) => {
     });
   } else {
     let errorMessage;
-    if (data.device === "") {
-      errorMessage = "Fill in the empty device name field";
-    } else if (data.model === "") {
-      errorMessage = "Fill in the empty model name field";
-    } else if (data.devicename === "") {
-      errorMessage = "Fill in the empty brand name field";
-    } else {
-      errorMessage = "Fill in the all empty";
-    }
+    // if (data.device === "") {
+    errorMessage = "Fill in the udid field";
+    // }
+    // else if (data.model === "") {
+    //   errorMessage = "Fill in the empty model name field";
+    // } else if (data.devicename === "") {
+    //   errorMessage = "Fill in the empty brand name field";
+    // } else {
+    //   errorMessage = "Fill in the all empty";
+    // }
 
     res.status(500).json({ status: 500, message: errorMessage });
   }
@@ -443,8 +444,8 @@ app.get("/user-detail", authenticateToken, (req, res) => {
 app.post("/add-config", (req, res) => {
   const body = req.body;
   db.collection("app_config")
-    .doc("config-id-2023")
-    .add(body)
+    .doc("configid2023")
+    .set(body)
     .then((docRef) => {
       res.status(200).json({
         status: 200,
