@@ -152,9 +152,9 @@ app.get("/device-info", authenticateToken, (req, res) => {
 
 app.post("/device-register", authenticateToken, (req, res) => {
   let data = req.body;
-  if (data.brand !== "" && data.model !== "" && data.device !== "") {
+  if (data.devicename !== "" && data.model !== "" && data.device !== "") {
     const collectionRef = db.collection("enquiry_collection");
-    const query = collectionRef.where("id", "==", data.id);
+    const query = collectionRef.where("udid", "==", data.udid);
 
     query.get().then((querySnapshot) => {
       if (querySnapshot.empty) {
@@ -199,7 +199,7 @@ app.post("/device-register", authenticateToken, (req, res) => {
       errorMessage = "Fill in the empty device name field";
     } else if (data.model === "") {
       errorMessage = "Fill in the empty model name field";
-    } else if (data.brand === "") {
+    } else if (data.devicename === "") {
       errorMessage = "Fill in the empty brand name field";
     } else {
       errorMessage = "Fill in the all empty";
@@ -443,6 +443,7 @@ app.get("/user-detail", authenticateToken, (req, res) => {
 app.post("/add-config", (req, res) => {
   const body = req.body;
   db.collection("app_config")
+    .doc("config-id-2023")
     .add(body)
     .then((docRef) => {
       res.status(200).json({
@@ -534,6 +535,43 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
       });
     });
 });
+
+app.post("/product-api-add", (req, res) => {
+  const body = req.body;
+  db.collection("product_api")
+    .add(body)
+    .then((docRef) => {
+      res.status(200).json({
+        status: 200,
+        doc_id: docRef.id,
+        message: "product api added successfully",
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({ status: 400, message: error });
+    });
+});
+
+app.get("/product-api-get", (req, res) => {
+  let config_detail = [];
+  db.collection("product_api")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        config_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        data: config_detail,
+        message: "product api get successfully",
+      });
+    });
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
