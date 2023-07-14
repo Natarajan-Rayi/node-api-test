@@ -573,6 +573,175 @@ app.get("/product-api-get", (req, res) => {
     });
 });
 
+app.post("/state-add", (req, res) => {
+  const body = req.body;
+  if (body.state !== "") {
+    db.collection("state_list")
+      .add(body)
+      .then((docRef) => {
+        res.status(200).json({
+          status: 200,
+          doc_id: docRef.id,
+          message: "state is added successfully",
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({ status: 400, message: error });
+      });
+  } else {
+    res.status(500).json({
+      status: 500,
+      message: "state value is missing",
+    });
+  }
+});
+
+app.get("/state-get", (req, res) => {
+  let config_detail = [];
+  db.collection("state_list")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        config_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        state: config_detail,
+        message: "state lists get successfully",
+      });
+    });
+});
+
+app.post("/district-add", (req, res) => {
+  const body = req.body;
+  if (body.district !== "") {
+    const collectionRef = db.collection("district_list");
+    const query = collectionRef.where("state_id", "==", body.state_id);
+
+    query.get().then((querySnapshot) => {
+      if (querySnapshot.empty) {
+        // let storeArray = [];
+        // let store = {
+        //   state_id: body.state_id,
+        //   districts: [{ id: 1, name: body.district }],
+        // };
+        // storeArray.push(store);
+        db.collection("district_list")
+          .doc(body.state_id)
+          .set({
+            state_id: body.state_id,
+            districts: [{ id: 1, name: body.district }],
+          })
+          .then((docRef) => {
+            res.status(200).json({
+              status: 200,
+              doc_id: docRef.id,
+              message: "district is added successfully",
+            });
+          })
+          .catch((error) => {
+            res.status(400).json({ status: 400, message: error });
+          });
+      } else {
+        let storeArray = querySnapshot.docs[0].data().districts;
+        // let store = {
+        //   state_id: body.state_id,
+        //   districts: [{ id: querySnapshot.size + 1, name: body.district }],
+        // };
+        storeArray.push({ id: querySnapshot.size + 1, name: body.district });
+        db.collection("district_list")
+          .doc(body.state_id)
+          .set({
+            state_id: body.state_id,
+            districts: storeArray,
+          })
+          .then((docRef) => {
+            res.status(200).json({
+              status: 200,
+              doc_id: docRef.id,
+              message: "district is added successfully",
+            });
+          })
+          .catch((error) => {
+            res.status(400).json({ status: 400, message: error });
+          });
+      }
+    });
+  } else {
+    res.status(500).json({
+      status: 500,
+      message: "district value is missing",
+    });
+  }
+});
+
+app.get("/district-get", (req, res) => {
+  let config_detail = [];
+  db.collection("district_list")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        config_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        district: config_detail,
+        message: "district lists get successfully",
+      });
+    });
+});
+
+app.post("/court-list-add", (req, res) => {
+  const body = req.body;
+  if (body.court_name !== "") {
+    db.collection("court_list")
+      .add(body)
+      .then((docRef) => {
+        res.status(200).json({
+          status: 200,
+          doc_id: docRef.id,
+          message: "court list is added successfully",
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({ status: 400, message: error });
+      });
+  } else {
+    res.status(500).json({
+      status: 500,
+      message: "court value is missing",
+    });
+  }
+});
+
+app.get("/court-list-get", (req, res) => {
+  let config_detail = [];
+  db.collection("court_list")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        console.log(doc.id, " => ", doc.data());
+        let data = doc.data();
+        data.doc_id = doc.id;
+        config_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        court_list: config_detail,
+        message: "court lists get successfully",
+      });
+    });
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
