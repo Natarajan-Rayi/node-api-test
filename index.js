@@ -573,6 +573,62 @@ app.get("/product-api-get", (req, res) => {
     });
 });
 
+app.post("/sub-product-add", (req, res) => {
+  const body = req.body;
+  if (Array.isArray(body.product_id)) {
+    db.collection("sub_product")
+      .add(body)
+      .then((docRef) => {
+        res.status(200).json({
+          status: 200,
+          doc_id: docRef.id,
+          message: "sub product added successfully",
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({ status: 400, message: error });
+      });
+  } else {
+    res
+      .status(500)
+      .json({ status: 500, message: "the product id is must be send array" });
+  }
+});
+
+app.get("/sub-product-get", (req, res) => {
+  let fieldGet = req.body;
+  let sub_product_detail = [];
+  // Construct the query
+  const query = db
+    .collection("sub_product")
+    .where("product_id", "array-contains", fieldGet.id);
+
+  // Execute the query
+  query
+    .get()
+    .then((querySnapshot) => {
+      // Process the query results
+      querySnapshot.forEach((doc) => {
+        // Access the document data
+        let data = doc.data();
+        data.doc_id = doc.id;
+        sub_product_detail.push(data);
+      });
+      res.status(200).json({
+        status: 200,
+        data: sub_product_detail,
+        message: "sub product get successfully",
+      });
+    })
+    .catch((error) => {
+      console.log("Error getting documents: ", error);
+      res.status(400).json({
+        status: 400,
+        message: error,
+      });
+    });
+});
+
 app.post("/state-add", (req, res) => {
   const body = req.body;
   if (body.state !== "") {
