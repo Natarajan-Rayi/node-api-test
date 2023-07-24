@@ -129,7 +129,7 @@ app.get("/JWT", (req, res) => {
 });
 
 // submission detail store
-app.get("/device-info", authenticateToken, (req, res) => {
+app.post("/device-info", authenticateToken, (req, res) => {
   const data = req.body;
   console.log(data);
 
@@ -277,7 +277,7 @@ app.post("/user-signin", authenticateToken, (req, res) => {
   }
 });
 
-app.get("/secret-code-generate", authenticateToken, (req, res) => {
+app.post("/secret-code-generate", authenticateToken, (req, res) => {
   const key1 = req.body.doc_id;
   const min = 100000;
   const max = 999999;
@@ -595,7 +595,7 @@ app.post("/sub-product-add", (req, res) => {
   }
 });
 
-app.get("/sub-product-get", (req, res) => {
+app.post("/sub-product-get", (req, res) => {
   let fieldGet = req.body;
   let sub_product_detail = [];
   // Construct the query
