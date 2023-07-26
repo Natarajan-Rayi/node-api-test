@@ -489,7 +489,7 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
         let case_id_array = [];
         console.log("Document data:", doc.data());
         let get_exist_id = doc.data().case_id;
-        if (get_exist_id === "") {
+        if (get_exist_id === "" || get_exist_id === undefined) {
           case_id_array = [];
         } else {
           case_id_array = get_exist_id;
