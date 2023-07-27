@@ -735,24 +735,61 @@ app.post("/district-add", (req, res) => {
   }
 });
 
-app.get("/district-get", (req, res) => {
-  let config_detail = [];
-  db.collection("district_list")
-    .get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        // doc.data() is never undefined for query doc snapshots
-        console.log(doc.id, " => ", doc.data());
-        let data = doc.data();
-        data.doc_id = doc.id;
-        config_detail.push(data);
+app.post("/district-get", (req, res) => {
+  try {
+    const body = req.body;
+    const districtRef = db.collection("district_list");
+
+    // Define the field and value for the where condition
+    const field = "state_id"; // Replace "population" with the field you want to filter on
+    const operator = "=="; // Replace ">" with the operator you want to use (<, <=, >, >=, "==", "!=")
+    const value = body.state_id; // Replace 100000 with the value you want to filter on
+
+    // Apply the where condition
+    districtRef
+      .where(field, operator, value)
+      .get()
+      .then((querySnapshot) => {
+        const config_detail = [];
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          console.log(doc.id, " => ", doc.data());
+          let data = doc.data();
+          data.doc_id = doc.id;
+          config_detail.push(data);
+        });
+        res.status(200).json({
+          status: 200,
+          district: config_detail,
+          message: "District lists retrieved successfully",
+        });
+      })
+      .catch((error) => {
+        console.log("Error getting documents:", error);
+        res.status(500).json({
+          status: 500,
+          message: "An error occurred while retrieving district lists",
+        });
       });
-      res.status(200).json({
-        status: 200,
-        district: config_detail,
-        message: "district lists get successfully",
+  } catch (error) {
+    let config_detail = [];
+    db.collection("district_list")
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          console.log(doc.id, " => ", doc.data());
+          let data = doc.data();
+          data.doc_id = doc.id;
+          config_detail.push(data);
+        });
+        res.status(200).json({
+          status: 200,
+          district: config_detail,
+          message: "district lists get successfully",
+        });
       });
-    });
+  }
 });
 
 app.post("/court-list-add", (req, res) => {
