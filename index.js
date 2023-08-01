@@ -945,6 +945,39 @@ app.post("/payment-api-get", (req, res) => {
       });
   }
 });
+
+// Route for 'scraping-results'
+app.post("/scraping-results", async (req, res) => {
+  try {
+    const { scarping_date, court_no } = req.body;
+
+    // Specify the collection to query
+    const collectionRef = db.collection("web_scarp");
+
+    // Define the conditions
+    const condition1 = ["details.scarping_date", "==", scarping_date];
+    const condition2 = ["details.court_no", "==", court_no];
+
+    // Build the query
+    const query = collectionRef.where(...condition1).where(...condition2);
+
+    // Execute the query and get the results
+    const snapshot = await query.get();
+
+    // Convert the results to a list of objects
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      data: doc.data(),
+    }));
+
+    // Return the results as JSON response
+    res.json(data);
+  } catch (error) {
+    console.error("Error querying Firestore:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
