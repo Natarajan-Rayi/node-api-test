@@ -750,13 +750,13 @@ app.post("/district-get", (req, res) => {
       .where(field, operator, value)
       .get()
       .then((querySnapshot) => {
-        const config_detail = [];
+        // const config_detail = [];
         querySnapshot.forEach((doc) => {
           // doc.data() is never undefined for query doc snapshots
           console.log(doc.id, " => ", doc.data());
           let data = doc.data();
           data.doc_id = doc.id;
-          config_detail.push(data);
+          config_detail = doc.data().districts;
         });
         res.status(200).json({
           status: 200,
@@ -828,6 +828,7 @@ app.get("/court-list-get", (req, res) => {
     // Apply the where condition
     districtRef
       .where(field, operator, value)
+      .where("state_id", operator, body.state_id)
       .get()
       .then((querySnapshot) => {
         const config_detail = [];
@@ -840,7 +841,7 @@ app.get("/court-list-get", (req, res) => {
         });
         res.status(200).json({
           status: 200,
-          district: config_detail,
+          court_list: config_detail,
           message: "court_list retrieved successfully",
         });
       })
@@ -872,6 +873,78 @@ app.get("/court-list-get", (req, res) => {
   }
 });
 
+app.post("/payment-api-add", (req, res) => {
+  const body = req.body;
+  db.collection("payment_list")
+    .add(body)
+    .then((docRef) => {
+      res.status(200).json({
+        status: 200,
+        doc_id: docRef.id,
+        message: "payment detail added successfully",
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({ status: 400, message: error });
+    });
+});
+
+app.post("/payment-api-get", (req, res) => {
+  try {
+    const body = req.body;
+    const districtRef = db.collection("payment_list");
+
+    // Define the field and value for the where condition
+    const field = "user_id"; // Replace "population" with the field you want to filter on
+    const operator = "=="; // Replace ">" with the operator you want to use (<, <=, >, >=, "==", "!=")
+    const value = body.user_id; // Replace 100000 with the value you want to filter on
+
+    // Apply the where condition
+    districtRef
+      .where(field, operator, value)
+      .get()
+      .then((querySnapshot) => {
+        const config_detail = [];
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          console.log(doc.id, " => ", doc.data());
+          let data = doc.data();
+          data.doc_id = doc.id;
+          config_detail.push(data);
+        });
+        res.status(200).json({
+          status: 200,
+          payment_list: config_detail,
+          message: "payment list retrieved successfully",
+        });
+      })
+      .catch((error) => {
+        console.log("Error getting documents:", error);
+        res.status(500).json({
+          status: 500,
+          message: "An error occurred while retrieving court_list",
+        });
+      });
+  } catch (error) {
+    let config_detail = [];
+    db.collection("payment_list")
+      .get()
+      .then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          console.log(doc.id, " => ", doc.data());
+          let data = doc.data();
+          data.doc_id = doc.id;
+          config_detail.push(data);
+        });
+        res.status(200).json({
+          status: 200,
+          payment_list: config_detail,
+          message: "payment lists get successfully",
+        });
+      });
+  }
+});
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
