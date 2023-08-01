@@ -815,7 +815,7 @@ app.post("/court-list-add", (req, res) => {
   }
 });
 
-app.get("/court-list-get", (req, res) => {
+app.post("/court-list-get", (req, res) => {
   try {
     const body = req.body;
     const districtRef = db.collection("court_list");
