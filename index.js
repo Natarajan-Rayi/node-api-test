@@ -709,7 +709,7 @@ app.post("/district-add", (req, res) => {
         //   districts: [{ id: querySnapshot.size + 1, name: body.district }],
         // };
         storeArray.push({
-          id: (querySnapshot.size + 1).toString(),
+          id: (storeArray.length + 1).toString(),
           name: body.district,
         });
         db.collection("district_list")
