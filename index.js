@@ -690,7 +690,7 @@ app.post("/district-add", (req, res) => {
           .doc(body.state_id)
           .set({
             state_id: body.state_id,
-            districts: [{ id: 1, name: body.district }],
+            districts: [{ id: (1).toString(), name: body.district }],
           })
           .then((docRef) => {
             res.status(200).json({
@@ -708,7 +708,10 @@ app.post("/district-add", (req, res) => {
         //   state_id: body.state_id,
         //   districts: [{ id: querySnapshot.size + 1, name: body.district }],
         // };
-        storeArray.push({ id: querySnapshot.size + 1, name: body.district });
+        storeArray.push({
+          id: (querySnapshot.size + 1).toString(),
+          name: body.district,
+        });
         db.collection("district_list")
           .doc(body.state_id)
           .set({
