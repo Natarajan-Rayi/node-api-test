@@ -950,9 +950,9 @@ app.post("/payment-api-get", (req, res) => {
 });
 
 // Route for 'scraping-results'
-app.post("/scraping-results", async (req, res) => {
+app.get("/scraping-results", async (req, res) => {
   try {
-    const { scarping_date, court_no } = req.body;
+    const { scarping_date, court_no } = req.query;
 
     // Specify the collection to query
     const collectionRef = db.collection("web_scarp");
