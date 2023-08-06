@@ -5,6 +5,10 @@ const path = require("path");
 const app = express();
 var admin = require("firebase-admin");
 const jwt = require("jsonwebtoken");
+const $ = require("jquery");
+const axios = require("axios");
+const { google } = require("googleapis");
+const nodemailer = require("nodemailer");
 const secretKey = "ZkTCP1MMbChTPCe_BD90j_8qgW5uNJTsoV3skP06Vj"; // Replace with your secret key
 
 const {
@@ -13,6 +17,21 @@ const {
   verifyAccessToken,
   refreshAccessToken,
 } = require("./token");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    type: "OAuth2",
+    user: "natarajan.rayi@gmail.com",
+    clientId: "aYF7wOEDOwR9BAbKox1HHPmZtGhvs7zW",
+    clientSecret:
+      "YOUuVyOzIpxQvCTyNVtXmy1b-ZkTCP1MMbChTPCe_BD90j_8qgW5uNJTsoV3skP06Vj",
+    refreshToken:
+      "1//04fFvOZIj7jaHCgYIARAAGAQSNwF-L9IrmyuJld-ni8qG5n9zww8ZvOqqHQfiB2J4z_7DUBTTrBcJgzLKBcEYcRzXuqBPZn2VRTQ",
+    accessToken:
+      "ya29.a0AfB_byBznkBuKC8V7bZ8RN7ZO24uA9XY08z71LZeDG8yhNA3-pJJD3u71wSe2zLmemKno5GwAR9VBWr3O0qebXmhWi1OpVhlusiju3sGSaVj4_Sjxq7QojYaJYSRkQ4b1Pe0XpvfQUezm3lNw550qU7Z3jpiaCgYKAWMSARESFQHsvYlsve_d_ea8YE2Ld8HTjiz6Cg0163",
+  },
+});
 
 const port = process.env.PORT || 5002; // Set the port to listen on
 
@@ -342,7 +361,7 @@ app.post("/verify-secret-code", authenticateToken, (req, res) => {
   });
 });
 // mail notification send
-app.get("/notification-send", (req, res) => {});
+// app.get("/notification-send", (req, res) => {});
 
 app.post("/user-register", authenticateToken, (req, res) => {
   const body = req.body;
@@ -365,11 +384,19 @@ app.post("/user-register", authenticateToken, (req, res) => {
         db.collection("user_register")
           .add(body)
           .then((docRef) => {
-            res.status(200).json({
-              status: 200,
-              token_id: docRef.id,
-              message: "user register successfully",
-            });
+            const dataToSend = {
+              param1: body.mobile_number,
+              param2: body.fcm,
+              param3: body.user_name,
+              param4: docRef.id,
+              param5: body.email,
+            };
+
+            res.redirect(
+              `/user-register-notification-send?${new URLSearchParams(
+                dataToSend
+              ).toString()}`
+            );
           })
           .catch((error) => {
             res.status(400).json({ status: 400, message: error });
@@ -502,10 +529,19 @@ app.post("/case-id-add", authenticateToken, (req, res) => {
           collectionRef.update({
             case_id: case_id_array,
           });
-          res.status(200).json({
-            status: 200,
-            msg: "case id successfully added",
-          });
+          const dataToSend = {
+            param1: doc.data().mobile_number,
+            param2: doc.data().fcm,
+            param3: doc.data().user_name,
+            param4: body.case_id,
+            param5: doc.data().email,
+          };
+
+          res.redirect(
+            `/case-id-add-notification-send?${new URLSearchParams(
+              dataToSend
+            ).toString()}`
+          );
         } else {
           let concat_exist_id = case_id_array.concat(body.case_id);
           var collectionRef = db.collection("user_register").doc(body.doc_id);
@@ -979,6 +1015,262 @@ app.get("/scraping-results", async (req, res) => {
     console.error("Error querying Firestore:", error);
     res.status(500).json({ error: "Internal Server Error" });
   }
+});
+
+app.get("/notification-send", async (req, res) => {
+  console.log("api run");
+  let details = "";
+  let userDetails = [];
+  let filterUser = [];
+  db.collection("web_scarp")
+    .where("details.scarping_date", "==", "2023-07-11")
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        // doc.data() is never undefined for query doc snapshots
+        details = doc.data().daily_cases;
+      });
+    })
+    .then(async () => {
+      await db
+        .collection("user_register")
+        .get()
+        .then((querySnapshot) => {
+          querySnapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+            userDetails.push({
+              caseid: doc.data().case_id,
+              num: doc.data().mobile_number,
+              fcm: doc.data().fcm,
+              userName: doc.data().user_name,
+              mail: doc.data().email,
+            });
+            console.log(doc.data().case_id);
+          });
+        });
+    })
+    .then(async () => {
+      // const matchingObjects = details.filter((obj1) => {
+      //   return userDetails.some((obj2) => {
+      //     return Object.entries(obj1).some(([key, value]) => {
+      //       return obj2.hasOwnProperty(key) && obj2[key] === value;
+      //     });
+      //   });
+      // });
+      console.log(details, "details");
+      console.log(userDetails, "user");
+      const matchingObjects = userDetails.filter((obj1) => {
+        return details.some((obj2) => obj1.caseid[0] === obj2.caseid);
+      });
+      console.log(matchingObjects);
+      filterUser = matchingObjects;
+    })
+    .then(() => {
+      const fcmUrl = "https://fcm.googleapis.com/fcm/send";
+      const serverKey =
+        "AAAAfhjYT5I:APA91bEUwxdj3Ujx-xdom6rO1iAm9P1wsuHh_u2308FIxRUgAVAxWCJZv8goZDk05Xi5z6OqH7bs9Cv5udwWqvjnPRrc-9O1QAyf3zU0moMeUK9pClcCgixD0JuY8aSo8Ikidz3JAC19"; // Replace with your FCM server key
+
+      // Headers for the HTTP request
+      const headers = {
+        Authorization: `key=${serverKey}`,
+        "Content-Type": "application/json",
+      };
+
+      filterUser.map((val) => {
+        var settings = {
+          async: true,
+          crossDomain: true,
+          url: `https://www.fast2sms.com/dev/bulkV2?authorization=YX9TfQk4yRNqk78SRiLWLDF3LIUMcTMshWZOlCjLAYVTSrHUc1n0SD8EtWjU&message=Hi ${val.userName} tomorrow your case ${val.caseid[0]} hearing&language=english&route=q&numbers=${val.num}`,
+          method: "GET",
+        };
+
+        axios(settings)
+          .then((response) => {
+            console.log(response.data);
+          })
+          .catch((error) => {
+            console.error("Error:", error.message);
+          });
+
+        // Message payload for FCM
+        const message = {
+          to: val.fcm,
+          notification: {
+            title: "Case Alert",
+            body: `Hi ${val.userName} tomorrow your case ${val.caseid[0]}`,
+          },
+        };
+
+        axios
+          .post(fcmUrl, message, { headers })
+          .then((response) => {
+            console.log("Notification sent successfully:", response.data);
+          })
+          .catch((error) => {
+            console.error("Error sending notification:", error.message);
+          });
+        const mailOptions = {
+          from: "natarajan.rayi@gmail.com",
+          to: val.mail,
+          subject: "Case Alert",
+          text: `Hi ${val.userName} tomorrow your case ${val.caseid[0]}`,
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            // Handle error
+            console.log(error);
+          } else {
+            console.log("Email sent: " + info.response);
+          }
+        });
+      });
+
+      res.send(filterUser);
+    })
+    .catch((error) => {
+      console.log("Error getting documents: ", error);
+    });
+});
+
+app.get("/case-id-add-notification-send", async (req, res) => {
+  const mobNum = req.query.param1;
+  const fcm = req.query.param2;
+  const user = req.query.param3;
+  const caseid = req.query.param4;
+  const mail = req.query.param5;
+  const fcmUrl = "https://fcm.googleapis.com/fcm/send";
+  const serverKey =
+    "AAAAfhjYT5I:APA91bEUwxdj3Ujx-xdom6rO1iAm9P1wsuHh_u2308FIxRUgAVAxWCJZv8goZDk05Xi5z6OqH7bs9Cv5udwWqvjnPRrc-9O1QAyf3zU0moMeUK9pClcCgixD0JuY8aSo8Ikidz3JAC19"; // Replace with your FCM server key
+
+  // Headers for the HTTP request
+  const headers = {
+    Authorization: `key=${serverKey}`,
+    "Content-Type": "application/json",
+  };
+
+  var settings = {
+    async: true,
+    crossDomain: true,
+    url: `https://www.fast2sms.com/dev/bulkV2?authorization=YX9TfQk4yRNqk78SRiLWLDF3LIUMcTMshWZOlCjLAYVTSrHUc1n0SD8EtWjU&message=Hi ${user} Your ${caseid} case added successfully&language=english&route=q&numbers=${mobNum}`,
+    method: "GET",
+  };
+
+  axios(settings)
+    .then((response) => {
+      console.log(response.data);
+    })
+    .catch((error) => {
+      console.error("Error:", error.message);
+    });
+
+  // Message payload for FCM
+  const message = {
+    to: fcm,
+    notification: {
+      title: "Add Case Id",
+      body: `Hi ${user} Your ${caseid} case added successfully`,
+    },
+  };
+
+  axios
+    .post(fcmUrl, message, { headers })
+    .then((response) => {
+      console.log("Notification sent successfully:", response.data);
+    })
+    .catch((error) => {
+      console.error("Error sending notification:", error.message);
+    });
+
+  const mailOptions = {
+    from: "natarajan.rayi@gmail.com",
+    to: mail,
+    subject: "Case Id Add",
+    text: `Hi ${user} Your ${caseid} case added successfully`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      // Handle error
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+  res.status(200).json({
+    status: 200,
+    msg: "case id successfully added",
+  });
+});
+
+app.get("/user-register-notification-send", async (req, res) => {
+  const mobNum = req.query.param1;
+  const fcm = req.query.param2;
+  const user = req.query.param3;
+  const docid = req.query.param4;
+  const mail = req.query.param5;
+  const fcmUrl = "https://fcm.googleapis.com/fcm/send";
+  const serverKey =
+    "AAAAfhjYT5I:APA91bEUwxdj3Ujx-xdom6rO1iAm9P1wsuHh_u2308FIxRUgAVAxWCJZv8goZDk05Xi5z6OqH7bs9Cv5udwWqvjnPRrc-9O1QAyf3zU0moMeUK9pClcCgixD0JuY8aSo8Ikidz3JAC19"; // Replace with your FCM server key
+
+  // Headers for the HTTP request
+  const headers = {
+    Authorization: `key=${serverKey}`,
+    "Content-Type": "application/json",
+  };
+
+  var settings = {
+    async: true,
+    crossDomain: true,
+    url: `https://www.fast2sms.com/dev/bulkV2?authorization=YX9TfQk4yRNqk78SRiLWLDF3LIUMcTMshWZOlCjLAYVTSrHUc1n0SD8EtWjU&message=Hi ${user} Welcome to our application&language=english&route=q&numbers=${mobNum}`,
+    method: "GET",
+  };
+
+  axios(settings)
+    .then((response) => {
+      console.log(response.data);
+    })
+    .catch((error) => {
+      console.error("Error:", error.message);
+    });
+
+  // Message payload for FCM
+  const message = {
+    to: fcm,
+    notification: {
+      title: "New User",
+      body: `Hi ${user} Welcome to our application`,
+    },
+  };
+
+  axios
+    .post(fcmUrl, message, { headers })
+    .then((response) => {
+      console.log("Notification sent successfully:", response.data);
+    })
+    .catch((error) => {
+      console.error("Error sending notification:", error.message);
+    });
+  const mailOptions = {
+    from: "natarajan.rayi@gmail.com",
+    to: mail,
+    subject: "New User",
+    text: `Hi ${user} Welcome to our application`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      // Handle error
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+  res.status(200).json({
+    status: 200,
+    token_id: docid,
+    message: "user register successfully",
+  });
 });
 
 // Start the server
